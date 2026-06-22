@@ -14,8 +14,10 @@ export default tseslint.config(
 		'package.json',
 		'package-lock.json',
 		'tsconfig.json',
+		'obsidian-secret-to-markdown-plugin'
 	]),
 	{
+		files: ['src/**/*.ts'],
 		languageOptions: {
 			globals: {
 				...globals.browser,
