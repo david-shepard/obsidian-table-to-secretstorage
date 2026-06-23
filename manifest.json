@@ -1,7 +1,7 @@
 {
-	"id": "obsidian-secret-to-markdown-plugin",
-	"name": "Obsidian Secret to Markdown Plugin",
-	"version": "1.0.0",
+	"id": "obsidian-table-to-secretstore-plugin",
+	"name": "Obsidian Table to SecretStore Plugin",
+	"version": "0.0.1",
 	"minAppVersion": "1.11.4",
 	"description": "Demonstrates some of the capabilities of the Obsidian API.",
 	"author": "Obsidian",

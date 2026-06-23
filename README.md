@@ -1,4 +1,4 @@
-# Table to SecretStorage
+# Obsidian Table to SecretStorage
 
 An Obsidian plugin that migrates plaintext secrets from a markdown table into Obsidian's built-in SecretStorage, then replaces the table values with their storage IDs.
 
@@ -29,7 +29,7 @@ Run the command **"Convert table at cursor to SecretStorage entries"** with your
 
 ## Installation
 
-Copy `main.js`, `manifest.json` to your vault at `.obsidian/plugins/table-to-secrets/`, then enable the plugin in Settings → Community Plugins.
+Copy `dist/main.js`, `dist/manifest.json` to your vault at `.obsidian/plugins/obsidian-markdown-to-secret/`, then enable the plugin in Settings → Community Plugins. Alternatively you can symlink the directory.
 
 ## Development
 
@@ -38,4 +38,32 @@ npm i
 npm run dev   # watch mode — recompile on save
 ```
 
-Reload Obsidian after each build, or use the [Hot Reload](https://github.com/pjeby/hot-reload) plugin.
+Reload Obsidian after each build, or use the [Hot Reload](https://github.com/pjeby/hot-reload) plugin (add `.hotreload` file to `dist` folder).
+
+## Disclaimer & things worth knowing
+
+- I'm not responsible for the security of your secrets
+- Secret IDs must match `^[a-z0-9]+(-[a-z0-9]+)*$`. This plugin slugifies
+  your table's key column automatically, but if two different labels
+  slugify to the same ID, the second one will silently overwrite the
+  first — the confirmation modal will flag pre-existing IDs, but it
+  won't catch collisions *within the same table*.
+- As of the 1.11.4 release, there's an open bug report indicating secrets
+  are currently stored in plaintext in Obsidian's Local Storage on desktop
+  rather than being encrypted at rest via the OS keychain. So this gets
+  secrets out of your synced, git-tracked vault files — which is the real
+  threat model this solves — but don't treat it as equivalent to a proper
+  OS credential store yet.
+- This only handles the table *under your cursor*, not every table in the
+  vault. That's deliberate as bulk-migrating without review is the kind of
+  thing that's fun until row 14 has a value with a literal `|` in it.
+
+## Possible next steps
+
+- Handling code-fences (```) & (``)
+- A settings tab using `SecretComponent` so other parts of your own plugin
+  ecosystem can reference a stored secret by name instead of hardcoding IDs.
+- A `deleteSecret`-based "undo" command, if/when that method is exposed.
+- Handling for escaped pipes (`\|`) inside table cells.
+- Display a modal with an easy way to fetch your secrets
+- Adapt plugin to work with [BRAT](https://tfthacker.com/brat-developers) 
