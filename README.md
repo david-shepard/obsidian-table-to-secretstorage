@@ -4,6 +4,9 @@ An Obsidian plugin that migrates plaintext secrets from a markdown table into Ob
 
 ## What it does
 
+> [!CAUTION]
+> This plugin is experimental, please make a backup of secrets first
+
 You have a note with secrets stored in plain text:
 
 ```
