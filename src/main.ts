@@ -72,9 +72,9 @@ function findTableAtCursor(editor: Editor): TableMatch | null {
 
 	const lines: string[] = [];
 	for (let i = start; i <= end; i++) lines.push(editor.getLine(i));
-
+	
 	// Row 0 is the header, row 1 must be the --- separator for this to be a real table.
-	if (lines.length < 3 || !isSeparatorRow(lines[1]!)) return null;
+	if (lines.length < 3 || !(lines.length > 1 && isSeparatorRow(lines[1]!))) return null;
 
 	const rows: ParsedSecretRow[] = [];
 	for (const line of lines.slice(2)) {
@@ -99,9 +99,10 @@ class ConfirmMigrationModal extends Modal {
 	constructor(
 		app: App,
 		private rows: ParsedSecretRow[],
-		private onConfirm: () => void
+		private onConfirm: (overwriteSecrets: boolean) => void
 	) {
 		super(app);
+		this.onConfirm = onConfirm;
 	}
 
 	onOpen() {
@@ -119,11 +120,20 @@ class ConfirmMigrationModal extends Modal {
 
 			let text = `"${row.rawKey}" → secretStorage id "${row.secretId}"`;
 			if (!valid) text += "  (invalid id — will be skipped)";
-			else if (row.alreadyExists) text += "  (existing secret will be overwritten)";
+			else if (row.alreadyExists) text += "  (existing secret will be overwritten if overwrite is checked)";
 
 			item.setText(text);
 			if (!valid || row.alreadyExists) item.addClass("mod-warning");
 		}
+		let overwriteSecrets = false;
+		new Setting(contentEl)
+			.setName("Overwrite existing secrets")
+			.setDesc("(Dangerous!) If checked, any existing secrets with the same id will be overwritten. If unchecked, existing secrets will be left alone and the table will be replaced with the existing secret ids.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(overwriteSecrets)
+					.onChange((value) => { overwriteSecrets = value; })
+			);
 
 		new Setting(contentEl)
 			.addButton((btn) => btn.setButtonText("Cancel").onClick(() => this.close()))
@@ -133,7 +143,7 @@ class ConfirmMigrationModal extends Modal {
 					.setCta()
 					.onClick(() => {
 						this.close();
-						this.onConfirm();
+						this.onConfirm(overwriteSecrets);
 					})
 			);
 	}
@@ -163,8 +173,8 @@ export default class TableToSecretsPlugin extends Plugin {
 					row.alreadyExists = existingIds.has(row.secretId);
 				}
 
-				new ConfirmMigrationModal(this.app, table.rows, () => {
-					this.migrate(editor, table);
+				new ConfirmMigrationModal(this.app, table.rows, (overwriteSecrets: boolean) => {
+					this.migrate(editor, table, overwriteSecrets);
 				}).open();
 			},
 		});
@@ -174,7 +184,7 @@ export default class TableToSecretsPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private migrate(editor: Editor, table: TableMatch) {
+	private migrate(editor: Editor, table: TableMatch, overwriteSecrets: boolean) {
 		const succeeded: ParsedSecretRow[] = [];
 		const failed: FailedRow[] = [];
 
@@ -184,8 +194,20 @@ export default class TableToSecretsPlugin extends Plugin {
 				continue;
 			}
 			try {
-				// setSecret is synchronous — no await.
-				this.app.secretStorage.setSecret(row.secretId, row.value);
+				// NOTE: setSecret is synchronous, no await
+				// TODO: get secret with `this.app.secretStorage.getSecret(row.secretId)`
+				// TODO: prompt user if secret exists and row.value == \`row.secretId\` (i.e. the table has already been migrated)
+				if (row.alreadyExists && !overwriteSecrets) {
+					console.log(`[table-to-secrets] skipping existing secret ${row.secretId} because overwrite is false`);
+					// If the secret already exists and we're not overwriting, we extract plaintext since we add it in succeeded.map() below
+					const parts = row.value.split('`');
+					if (parts.length == 3) {
+						row.value = parts[1]!;
+					}
+					row.value = row.value.split('`').length == 3 ? row.value.split('`')[1]! : row.value; // remove the backticks from the value
+				} else {
+					this.app.secretStorage.setSecret(row.secretId, row.value);
+				}
 				succeeded.push(row);
 			} catch (err) {
 				failed.push({ row, error: err instanceof Error ? err.message : String(err) });
