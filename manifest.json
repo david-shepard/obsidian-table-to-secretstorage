@@ -1,5 +1,5 @@
 {
-	"id": "obsidian-table-to-secretstore-plugin",
+	"id": "obsidian-table-to-secretstore",
 	"name": "Obsidian Table to SecretStore Plugin",
 	"version": "0.0.1",
 	"minAppVersion": "1.11.4",
